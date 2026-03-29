@@ -41,7 +41,7 @@ describe('WikimediaService', () => {
   beforeEach(() => {
     service = new WikimediaService();
     fetchSpy = vi.spyOn(global as any, 'fetch');
-    // Pin random to select the first element
+    // Pin random to select the first image from search results
     vi.spyOn(Math, 'random').mockReturnValue(0);
   });
 
