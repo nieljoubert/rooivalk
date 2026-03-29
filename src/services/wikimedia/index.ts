@@ -53,16 +53,14 @@ class WikimediaService {
   public async getCityImage(
     location: WeatherLocation,
   ): Promise<WikimediaImage | null> {
-    const searchTerm = location.name;
-
     try {
-      const response = await fetch(this.buildSearchUrl(searchTerm), {
+      const response = await fetch(this.buildSearchUrl(location.name), {
         headers: { 'User-Agent': USER_AGENT },
       });
 
       if (!response.ok) {
         console.error(
-          `Wikimedia API returned ${response.status} ${response.statusText} for "${searchTerm}"`,
+          `Wikimedia API returned ${response.status} ${response.statusText} for "${location.name}"`,
         );
         return null;
       }
@@ -70,14 +68,14 @@ class WikimediaService {
       const data = (await response.json()) as WikimediaQueryResponse;
       if (data.error) {
         console.error(
-          `Wikimedia API error for "${searchTerm}": ${data.error.code} - ${data.error.info}`,
+          `Wikimedia API error for "${location.name}": ${data.error.code} - ${data.error.info}`,
         );
         return null;
       }
 
       const pages = data.query?.pages;
       if (!pages) {
-        console.warn(`Wikimedia returned no pages for "${searchTerm}"`);
+        console.warn(`Wikimedia returned no pages for "${location.name}"`);
         return null;
       }
 
@@ -89,7 +87,7 @@ class WikimediaService {
 
       if (imagePages.length === 0) {
         console.warn(
-          `No suitable images found on Wikimedia for "${searchTerm}" (${Object.keys(pages).length} pages checked)`,
+          `No suitable images found on Wikimedia for "${location.name}" (${Object.keys(pages).length} pages checked)`,
         );
         return null;
       }
@@ -98,7 +96,7 @@ class WikimediaService {
       const imageInfo = picked.imageinfo?.[0];
       if (!imageInfo?.url || !isWikimediaMime(imageInfo.mime)) {
         console.warn(
-          `Wikimedia: picked image "${picked.title}" for "${searchTerm}" but imageInfo was unexpectedly missing`,
+          `Wikimedia: picked image "${picked.title}" for "${location.name}" but imageInfo was unexpectedly missing`,
         );
         return null;
       }

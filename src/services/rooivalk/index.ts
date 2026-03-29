@@ -294,6 +294,7 @@ class Rooivalk {
         .sort((a, b) => a.sort - b.sort)
         .map(({ loc }) => loc);
 
+      let errorCount = 0;
       for (const location of shuffled) {
         try {
           const cityImage = await this._wikimedia.getCityImage(location);
@@ -306,6 +307,7 @@ class Rooivalk {
             break;
           }
         } catch (err) {
+          errorCount++;
           console.error(
             `Wikimedia image fetch failed for ${location.name}:`,
             err,
@@ -314,17 +316,25 @@ class Rooivalk {
       }
 
       if (!motdImage) {
-        console.warn(
-          'Wikimedia image unavailable for all cities, falling back to Peapix.',
-        );
+        if (errorCount === shuffled.length) {
+          console.error(
+            `Wikimedia service appears to be down — all ${errorCount} cities threw exceptions.`,
+          );
+        } else {
+          console.warn(
+            'Wikimedia image unavailable for all cities, falling back to Peapix.',
+          );
+        }
         try {
           const peapixImage = await this._peapix.getImage();
           if (peapixImage) {
             motdImage = {
-              heading: shuffled[0].name,
+              heading: peapixImage.title ?? 'Image of the day',
               attribution: peapixImage.copyright,
               buffer: peapixImage.buffer,
             };
+          } else {
+            console.warn('Peapix fallback returned no image.');
           }
         } catch (peapixErr) {
           console.error(
