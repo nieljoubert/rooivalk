@@ -1,4 +1,4 @@
-import { YR_COORDINATES } from '@/constants';
+import type { WeatherLocation } from '@/types';
 
 const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 type WikimediaMimeType = (typeof IMAGE_MIMES)[number];
@@ -50,9 +50,9 @@ class WikimediaService {
     return url.toString();
   }
 
-  public async getRandomCityImage(): Promise<WikimediaImage | null> {
-    const locations = Object.values(YR_COORDINATES);
-    const location = locations[Math.floor(Math.random() * locations.length)];
+  public async getCityImage(
+    location: WeatherLocation,
+  ): Promise<WikimediaImage | null> {
     const searchTerm = location.name;
 
     try {

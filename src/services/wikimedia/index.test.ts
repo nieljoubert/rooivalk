@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { YR_COORDINATES } from '@/constants';
 import WikimediaService from '.';
+
+const TEST_LOCATION = Object.values(YR_COORDINATES)[0];
 
 const VALID_API_RESPONSE = {
   query: {
@@ -58,7 +61,7 @@ describe('WikimediaService', () => {
         arrayBuffer: async () => new Uint8Array([9, 8, 7]).buffer,
       } as unknown as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
 
     expect(image).not.toBeNull();
     expect(image?.title).toBe('Dubai Marina Skyline');
@@ -83,7 +86,7 @@ describe('WikimediaService', () => {
         arrayBuffer: async () => new Uint8Array([1]).buffer,
       } as unknown as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
 
     // Should pick the JPEG, not the SVG
     expect(image?.title).toBe('Dubai Marina Skyline');
@@ -96,7 +99,7 @@ describe('WikimediaService', () => {
       statusText: 'Server Error',
     } as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
@@ -106,7 +109,7 @@ describe('WikimediaService', () => {
       json: async () => ({ query: {} }),
     } as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
@@ -130,7 +133,7 @@ describe('WikimediaService', () => {
       }),
     } as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
@@ -146,14 +149,14 @@ describe('WikimediaService', () => {
         statusText: 'Not Found',
       } as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
   it('returns null when fetch throws a network error', async () => {
     fetchSpy.mockRejectedValueOnce(new Error('Network error'));
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
@@ -184,7 +187,7 @@ describe('WikimediaService', () => {
         arrayBuffer: async () => new Uint8Array([1]).buffer,
       } as unknown as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image?.title).toBe('St.Paul.Cathedral');
   });
 
@@ -196,7 +199,7 @@ describe('WikimediaService', () => {
       }),
     } as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
@@ -206,7 +209,7 @@ describe('WikimediaService', () => {
       json: async () => ({}),
     } as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
@@ -224,7 +227,7 @@ describe('WikimediaService', () => {
         arrayBuffer: async () => new Uint8Array([1]).buffer,
       } as unknown as Response);
 
-    const image = await service.getRandomCityImage();
+    const image = await service.getCityImage(TEST_LOCATION);
     expect(image).toBeNull();
   });
 
@@ -234,7 +237,7 @@ describe('WikimediaService', () => {
       json: async () => ({ query: {} }),
     } as Response);
 
-    await service.getRandomCityImage();
+    await service.getCityImage(TEST_LOCATION);
 
     const url = String(fetchSpy.mock.calls[0]?.[0]);
     expect(url).toContain('commons.wikimedia.org');

@@ -281,39 +281,47 @@ class Rooivalk {
         return;
       }
 
-      // Try Wikimedia city image first, fall back to Peapix
+      // Try Wikimedia city image for each city, fall back to Peapix
       let motdImage: {
         heading: string;
         attribution: string;
         buffer: Buffer;
       } | null = null;
 
-      let cityImage = null;
-      try {
-        cityImage = await this._wikimedia.getRandomCityImage();
-      } catch (err) {
-        console.error('Wikimedia image fetch threw an error:', err);
+      const locations = Object.values(YR_COORDINATES);
+      const shuffled = locations
+        .map((loc) => ({ loc, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ loc }) => loc);
+
+      for (const location of shuffled) {
+        try {
+          const cityImage = await this._wikimedia.getCityImage(location);
+          if (cityImage) {
+            motdImage = {
+              heading: cityImage.cityName,
+              attribution: cityImage.title,
+              buffer: cityImage.buffer,
+            };
+            break;
+          }
+        } catch (err) {
+          console.error(
+            `Wikimedia image fetch failed for ${location.name}:`,
+            err,
+          );
+        }
       }
 
-      if (cityImage) {
-        motdImage = {
-          heading: cityImage.cityName,
-          attribution: cityImage.title,
-          buffer: cityImage.buffer,
-        };
-      } else {
+      if (!motdImage) {
         console.warn(
-          'Wikimedia image unavailable, falling back to Peapix. ' +
-            'Check earlier logs for Wikimedia API errors.',
+          'Wikimedia image unavailable for all cities, falling back to Peapix.',
         );
         try {
           const peapixImage = await this._peapix.getImage();
           if (peapixImage) {
-            const locations = Object.values(YR_COORDINATES);
-            const randomLocation =
-              locations[Math.floor(Math.random() * locations.length)];
             motdImage = {
-              heading: randomLocation.name,
+              heading: shuffled[0].name,
               attribution: peapixImage.copyright,
               buffer: peapixImage.buffer,
             };

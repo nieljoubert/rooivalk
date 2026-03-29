@@ -79,7 +79,7 @@ const mockPeapixService = vi.mocked({
 } as any);
 
 const mockWikimediaService = vi.mocked({
-  getRandomCityImage: vi.fn(),
+  getCityImage: vi.fn(),
 } as any);
 
 describe('Rooivalk', () => {
@@ -442,7 +442,7 @@ describe('Rooivalk', () => {
       const mockYrService = {
         getAllForecasts: vi.fn().mockResolvedValue([forecast]),
       } as any;
-      mockWikimediaService.getRandomCityImage.mockResolvedValue({
+      mockWikimediaService.getCityImage.mockResolvedValue({
         title: 'Table View Beach',
         cityName: 'Table View, South Africa',
         mimeType: 'image/jpeg',
@@ -511,7 +511,7 @@ describe('Rooivalk', () => {
         content: motdContent,
       });
       mockPeapixService.getImage.mockResolvedValue(null);
-      mockWikimediaService.getRandomCityImage.mockResolvedValue(null);
+      mockWikimediaService.getCityImage.mockResolvedValue(null);
 
       const mockYrService = {
         getAllForecasts: vi.fn().mockResolvedValue([]),
@@ -562,7 +562,7 @@ describe('Rooivalk', () => {
       mockDiscordService.buildMessageReply.mockReturnValue({
         content: motdContent,
       });
-      mockWikimediaService.getRandomCityImage.mockResolvedValue(null);
+      mockWikimediaService.getCityImage.mockResolvedValue(null);
       mockPeapixService.getImage.mockResolvedValue({
         title: 'Dune Patrol',
         copyright: '© Eric Yang/Getty Image',
@@ -624,7 +624,7 @@ describe('Rooivalk', () => {
       mockDiscordService.buildMessageReply.mockReturnValue({
         content: motdContent,
       });
-      mockWikimediaService.getRandomCityImage.mockResolvedValue(null);
+      mockWikimediaService.getCityImage.mockResolvedValue(null);
       mockPeapixService.getImage.mockResolvedValue({
         title: null,
         copyright: '© Some Photographer',
@@ -681,7 +681,7 @@ describe('Rooivalk', () => {
       mockDiscordService.buildMessageReply.mockReturnValue({
         content: motdContent,
       });
-      mockWikimediaService.getRandomCityImage.mockRejectedValue(
+      mockWikimediaService.getCityImage.mockRejectedValue(
         new Error('Unexpected Wikimedia crash'),
       );
       mockPeapixService.getImage.mockResolvedValue({
@@ -742,7 +742,7 @@ describe('Rooivalk', () => {
       mockDiscordService.buildMessageReply.mockReturnValue({
         content: motdContent,
       });
-      mockWikimediaService.getRandomCityImage.mockResolvedValue(null);
+      mockWikimediaService.getCityImage.mockResolvedValue(null);
       mockPeapixService.getImage.mockRejectedValue(
         new Error('Peapix network failure'),
       );
