@@ -19,6 +19,7 @@ import {
   ALLOWED_ATTACHMENT_CONTENT_TYPES,
   ALLOWED_ATTACHMENT_EXTENSIONS,
   DISCORD_COMMANDS,
+  YR_COORDINATES,
 } from '@/constants';
 import DiscordService from '@/services/discord';
 import OpenAIService from '@/services/openai';
@@ -308,8 +309,11 @@ class Rooivalk {
         try {
           const peapixImage = await this._peapix.getImage();
           if (peapixImage) {
+            const locations = Object.values(YR_COORDINATES);
+            const randomLocation =
+              locations[Math.floor(Math.random() * locations.length)];
             motdImage = {
-              heading: peapixImage.title ?? 'Image of the day',
+              heading: randomLocation.name,
               attribution: peapixImage.copyright,
               buffer: peapixImage.buffer,
             };

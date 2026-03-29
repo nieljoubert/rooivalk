@@ -16,9 +16,12 @@ import type {
   ThreadChannel,
 } from 'discord.js';
 
+import { YR_COORDINATES } from '@/constants';
 import { silenceConsole } from '@/test-utils/consoleMocks';
 import { createMockMessage } from '@/test-utils/createMockMessage';
 import { MOCK_CONFIG, MOCK_ENV } from '@/test-utils/mock';
+
+const VALID_CITY_NAMES = Object.values(YR_COORDINATES).map((loc) => loc.name);
 
 import { buildPromptAuthor } from './helpers';
 
@@ -584,7 +587,9 @@ describe('Rooivalk', () => {
       const sendPayload = mockChannel.send.mock.calls[0]?.[0];
       expect(sendPayload?.files).toHaveLength(1);
       expect(sendPayload?.embeds).toHaveLength(1);
-      expect(sendPayload?.embeds?.[0]?.data?.description).toBe('Dune Patrol');
+      expect(VALID_CITY_NAMES).toContain(
+        sendPayload?.embeds?.[0]?.data?.description,
+      );
       expect(sendPayload?.embeds?.[0]?.data?.footer?.text).toBe(
         '© Eric Yang/Getty Image',
       );
@@ -642,8 +647,8 @@ describe('Rooivalk', () => {
       await motdRooivalk.sendMotdToMotdChannel();
 
       const sendPayload = mockChannel.send.mock.calls[0]?.[0];
-      expect(sendPayload?.embeds?.[0]?.data?.description).toBe(
-        'Image of the day',
+      expect(VALID_CITY_NAMES).toContain(
+        sendPayload?.embeds?.[0]?.data?.description,
       );
     });
 
@@ -703,8 +708,8 @@ describe('Rooivalk', () => {
       // MOTD should still be sent with Peapix fallback image
       expect(mockChannel.send).toHaveBeenCalled();
       const sendPayload = mockChannel.send.mock.calls[0]?.[0];
-      expect(sendPayload?.embeds?.[0]?.data?.description).toBe(
-        'Fallback Image',
+      expect(VALID_CITY_NAMES).toContain(
+        sendPayload?.embeds?.[0]?.data?.description,
       );
     });
 
