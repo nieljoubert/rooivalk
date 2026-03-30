@@ -60,12 +60,13 @@ class WikimediaService {
     });
 
     if (!response.ok) {
-      console.error(
+      throw new Error(
         `Wikimedia API returned ${response.status} ${response.statusText} for "${cityName}"`,
       );
-      return null;
     }
 
+    // .json() can throw SyntaxError on malformed responses (e.g. HTML error pages with 200 status);
+    // this is intentional — the caller's per-city catch block handles it.
     const data = (await response.json()) as WikimediaQueryResponse;
     if (data.error) {
       console.error(
@@ -94,12 +95,25 @@ class WikimediaService {
     }
 
     const picked = imagePages[Math.floor(Math.random() * imagePages.length)];
-    const imageInfo = picked.imageinfo![0];
+    const imageInfo = picked.imageinfo?.[0];
+    if (!imageInfo?.url || !isWikimediaMime(imageInfo.mime)) {
+      console.warn(
+        `Wikimedia: picked image "${picked.title}" for "${cityName}" but imageInfo was unexpectedly missing`,
+      );
+      return null;
+    }
 
-    const imageResponse = await fetch(imageInfo.url, {
-      headers: { 'User-Agent': USER_AGENT },
-      signal: AbortSignal.timeout(15_000),
-    });
+    let imageResponse: Response;
+    try {
+      imageResponse = await fetch(imageInfo.url, {
+        headers: { 'User-Agent': USER_AGENT },
+        signal: AbortSignal.timeout(15_000),
+      });
+    } catch (err) {
+      throw new Error(
+        `Image download failed for "${cityName}" (${imageInfo.url}): ${err instanceof Error ? err.message : err}`,
+      );
+    }
     if (!imageResponse.ok) {
       console.error(
         `Failed to download Wikimedia image: ${imageResponse.status} ${imageResponse.statusText}`,

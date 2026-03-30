@@ -35,6 +35,13 @@ import {
   buildPromptAuthor,
 } from './helpers';
 
+function shuffleArray<T>(items: T[]): T[] {
+  return items
+    .map((item) => ({ item, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ item }) => item);
+}
+
 const IMAGE_ATTACHMENT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp'];
 const MOTD_IMAGE_ATTACHMENT_NAME = 'rooivalk_motd.jpg';
 
@@ -289,10 +296,7 @@ class Rooivalk {
       } | null = null;
 
       const locations = Object.values(YR_COORDINATES);
-      const shuffled = locations
-        .map((loc) => ({ loc, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ loc }) => loc);
+      const shuffled = shuffleArray(locations);
 
       let errorCount = 0;
       for (const location of shuffled) {
@@ -308,8 +312,10 @@ class Rooivalk {
           }
         } catch (err) {
           errorCount++;
+          const errType =
+            err instanceof Error ? err.constructor.name : typeof err;
           console.error(
-            `Wikimedia image fetch failed for ${location.name}:`,
+            `Wikimedia image fetch failed for ${location.name} [${errType}]:`,
             err,
           );
         }

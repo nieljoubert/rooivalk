@@ -92,15 +92,16 @@ describe('WikimediaService', () => {
     expect(image?.title).toBe('Dubai Marina Skyline');
   });
 
-  it('returns null when API returns non-OK status', async () => {
+  it('throws when API returns non-OK status', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: false,
       status: 500,
       statusText: 'Server Error',
     } as Response);
 
-    const image = await service.getCityImage(TEST_LOCATION);
-    expect(image).toBeNull();
+    await expect(service.getCityImage(TEST_LOCATION)).rejects.toThrow(
+      'Wikimedia API returned 500 Server Error',
+    );
   });
 
   it('returns null when API response has no pages', async () => {
@@ -242,6 +243,8 @@ describe('WikimediaService', () => {
 
     const url = String(fetchSpy.mock.calls[0]?.[0]);
     expect(url).toContain('commons.wikimedia.org');
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('gsrsearch')).toBe(TEST_LOCATION.name);
     expect(url).toContain('gsrnamespace=6');
     expect(url).toContain('gsrlimit=20');
     expect(url).toContain('iiprop=url');
