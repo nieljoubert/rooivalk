@@ -312,11 +312,10 @@ class Rooivalk {
           }
         } catch (err) {
           errorCount++;
-          const errType =
-            err instanceof Error ? err.constructor.name : typeof err;
+          const errMsg =
+            err instanceof Error ? err.message : String(err);
           console.error(
-            `Wikimedia image fetch failed for ${location.name} [${errType}]:`,
-            err,
+            `Wikimedia image fetch failed for ${location.name}: ${errMsg}`,
           );
         }
       }

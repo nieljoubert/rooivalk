@@ -114,10 +114,9 @@ class WikimediaService {
       );
     }
     if (!imageResponse.ok) {
-      console.error(
-        `Failed to download Wikimedia image: ${imageResponse.status} ${imageResponse.statusText}`,
+      throw new Error(
+        `Image download returned ${imageResponse.status} ${imageResponse.statusText} for "${cityName}" (${imageInfo.url})`,
       );
-      return null;
     }
 
     const contentLength = imageResponse.headers.get('content-length');

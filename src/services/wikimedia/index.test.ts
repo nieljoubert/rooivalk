@@ -138,7 +138,7 @@ describe('WikimediaService', () => {
     expect(image).toBeNull();
   });
 
-  it('returns null when image download fails', async () => {
+  it('throws when image download fails', async () => {
     fetchSpy
       .mockResolvedValueOnce({
         ok: true,
@@ -150,8 +150,9 @@ describe('WikimediaService', () => {
         statusText: 'Not Found',
       } as Response);
 
-    const image = await service.getCityImage(TEST_LOCATION);
-    expect(image).toBeNull();
+    await expect(service.getCityImage(TEST_LOCATION)).rejects.toThrow(
+      'Image download returned 404 Not Found',
+    );
   });
 
   it('throws when fetch throws a network error', async () => {
