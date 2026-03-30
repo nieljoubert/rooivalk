@@ -316,15 +316,11 @@ class Rooivalk {
       }
 
       if (!motdImage) {
-        if (errorCount === shuffled.length) {
-          console.error(
-            `Wikimedia service appears to be down — all ${errorCount} cities threw exceptions.`,
-          );
-        } else {
-          console.warn(
-            'Wikimedia image unavailable for all cities, falling back to Peapix.',
-          );
-        }
+        console.warn(
+          `Wikimedia image unavailable for all ${shuffled.length} cities` +
+            ` (${errorCount} threw, ${shuffled.length - errorCount} returned null).` +
+            ` Falling back to Peapix.`,
+        );
         try {
           const peapixImage = await this._peapix.getImage();
           if (peapixImage) {

@@ -53,96 +53,84 @@ class WikimediaService {
   public async getCityImage(
     location: WeatherLocation,
   ): Promise<WikimediaImage | null> {
-    try {
-      const response = await fetch(this.buildSearchUrl(location.name), {
-        headers: { 'User-Agent': USER_AGENT },
-      });
+    const cityName = location.name;
 
-      if (!response.ok) {
-        console.error(
-          `Wikimedia API returned ${response.status} ${response.statusText} for "${location.name}"`,
-        );
-        return null;
-      }
+    const response = await fetch(this.buildSearchUrl(cityName), {
+      headers: { 'User-Agent': USER_AGENT },
+    });
 
-      const data = (await response.json()) as WikimediaQueryResponse;
-      if (data.error) {
-        console.error(
-          `Wikimedia API error for "${location.name}": ${data.error.code} - ${data.error.info}`,
-        );
-        return null;
-      }
-
-      const pages = data.query?.pages;
-      if (!pages) {
-        console.warn(`Wikimedia returned no pages for "${location.name}"`);
-        return null;
-      }
-
-      // Filter to raster photo formats (JPEG, PNG, WebP); excludes SVGs and other non-raster types
-      const imagePages = Object.values(pages).filter((page) => {
-        const info = page.imageinfo?.[0];
-        return info?.url && isWikimediaMime(info.mime);
-      });
-
-      if (imagePages.length === 0) {
-        console.warn(
-          `No suitable images found on Wikimedia for "${location.name}" (${Object.keys(pages).length} pages checked)`,
-        );
-        return null;
-      }
-
-      const picked = imagePages[Math.floor(Math.random() * imagePages.length)];
-      const imageInfo = picked.imageinfo?.[0];
-      if (!imageInfo?.url || !isWikimediaMime(imageInfo.mime)) {
-        console.warn(
-          `Wikimedia: picked image "${picked.title}" for "${location.name}" but imageInfo was unexpectedly missing`,
-        );
-        return null;
-      }
-
-      const imageResponse = await fetch(imageInfo.url, {
-        headers: { 'User-Agent': USER_AGENT },
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!imageResponse.ok) {
-        console.error(
-          `Failed to download Wikimedia image: ${imageResponse.status} ${imageResponse.statusText}`,
-        );
-        return null;
-      }
-
-      const contentLength = imageResponse.headers.get('content-length');
-      if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
-        console.warn(
-          `Wikimedia image too large (${contentLength} bytes), skipping: ${imageInfo.url}`,
-        );
-        return null;
-      }
-
-      const arrayBuffer = await imageResponse.arrayBuffer();
-      if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
-        console.warn(
-          `Wikimedia image too large after download (${arrayBuffer.byteLength} bytes), skipping`,
-        );
-        return null;
-      }
-      return {
-        title: picked.title
-          .replace(/^File:/, '')
-          .replace(/\.(jpe?g|png|webp|gif|tiff?)$/i, ''),
-        cityName: location.name,
-        mimeType: imageInfo.mime,
-        sourceUrl: imageInfo.descriptionurl,
-        buffer: Buffer.from(arrayBuffer),
-      };
-    } catch (error) {
+    if (!response.ok) {
       console.error(
-        `Error fetching Wikimedia image for ${location.name}:`,
-        error,
+        `Wikimedia API returned ${response.status} ${response.statusText} for "${cityName}"`,
       );
       return null;
     }
+
+    const data = (await response.json()) as WikimediaQueryResponse;
+    if (data.error) {
+      console.error(
+        `Wikimedia API error for "${cityName}": ${data.error.code} - ${data.error.info}`,
+      );
+      return null;
+    }
+
+    const pages = data.query?.pages;
+    if (!pages) {
+      console.warn(`Wikimedia returned no pages for "${cityName}"`);
+      return null;
+    }
+
+    // Filter to raster photo formats (JPEG, PNG, WebP); excludes SVGs and other non-raster types
+    const imagePages = Object.values(pages).filter((page) => {
+      const info = page.imageinfo?.[0];
+      return info?.url && isWikimediaMime(info.mime);
+    });
+
+    if (imagePages.length === 0) {
+      console.warn(
+        `No suitable images found on Wikimedia for "${cityName}" (${Object.keys(pages).length} pages checked)`,
+      );
+      return null;
+    }
+
+    const picked = imagePages[Math.floor(Math.random() * imagePages.length)];
+    const imageInfo = picked.imageinfo![0];
+
+    const imageResponse = await fetch(imageInfo.url, {
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!imageResponse.ok) {
+      console.error(
+        `Failed to download Wikimedia image: ${imageResponse.status} ${imageResponse.statusText}`,
+      );
+      return null;
+    }
+
+    const contentLength = imageResponse.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
+      console.warn(
+        `Wikimedia image too large (${contentLength} bytes), skipping: ${imageInfo.url}`,
+      );
+      return null;
+    }
+
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
+      console.warn(
+        `Wikimedia image too large after download (${arrayBuffer.byteLength} bytes), skipping`,
+      );
+      return null;
+    }
+    return {
+      title: picked.title
+        .replace(/^File:/, '')
+        .replace(/\.(jpe?g|png|webp|gif|tiff?)$/i, ''),
+      cityName,
+      mimeType: imageInfo.mime,
+      sourceUrl: imageInfo.descriptionurl,
+      buffer: Buffer.from(arrayBuffer),
+    };
   }
 }
 

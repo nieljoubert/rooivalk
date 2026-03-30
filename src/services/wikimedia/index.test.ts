@@ -153,11 +153,12 @@ describe('WikimediaService', () => {
     expect(image).toBeNull();
   });
 
-  it('returns null when fetch throws a network error', async () => {
+  it('throws when fetch throws a network error', async () => {
     fetchSpy.mockRejectedValueOnce(new Error('Network error'));
 
-    const image = await service.getCityImage(TEST_LOCATION);
-    expect(image).toBeNull();
+    await expect(service.getCityImage(TEST_LOCATION)).rejects.toThrow(
+      'Network error',
+    );
   });
 
   it('sanitizes title with multiple dots correctly', async () => {
