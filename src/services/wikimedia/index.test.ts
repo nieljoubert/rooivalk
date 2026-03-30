@@ -193,7 +193,7 @@ describe('WikimediaService', () => {
     expect(image?.title).toBe('St.Paul.Cathedral');
   });
 
-  it('returns null when API returns error in response body', async () => {
+  it('throws when API returns error in response body', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -201,8 +201,9 @@ describe('WikimediaService', () => {
       }),
     } as Response);
 
-    const image = await service.getCityImage(TEST_LOCATION);
-    expect(image).toBeNull();
+    await expect(service.getCityImage(TEST_LOCATION)).rejects.toThrow(
+      'Wikimedia API error',
+    );
   });
 
   it('returns null when response has no query key at all', async () => {

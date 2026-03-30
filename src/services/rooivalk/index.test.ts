@@ -21,10 +21,10 @@ import { silenceConsole } from '@/test-utils/consoleMocks';
 import { createMockMessage } from '@/test-utils/createMockMessage';
 import { MOCK_CONFIG, MOCK_ENV } from '@/test-utils/mock';
 
+import { buildPromptAuthor } from './helpers';
+
 const VALID_CITY_NAMES = Object.values(YR_COORDINATES).map((loc) => loc.name);
 const CITY_COUNT = Object.keys(YR_COORDINATES).length;
-
-import { buildPromptAuthor } from './helpers';
 
 let restoreConsole: () => void;
 

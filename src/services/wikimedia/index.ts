@@ -69,10 +69,9 @@ class WikimediaService {
     // this is intentional — the caller's per-city catch block handles it.
     const data = (await response.json()) as WikimediaQueryResponse;
     if (data.error) {
-      console.error(
+      throw new Error(
         `Wikimedia API error for "${cityName}": ${data.error.code} - ${data.error.info}`,
       );
-      return null;
     }
 
     const pages = data.query?.pages;
