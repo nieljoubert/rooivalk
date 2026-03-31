@@ -288,7 +288,7 @@ class Rooivalk {
         return;
       }
 
-      // Try Wikimedia city image for each city, fall back to Peapix
+      // Try Wikimedia city image for each city (in random order), fall back to Peapix
       let motdImage: {
         heading: string;
         attribution: string;
@@ -312,8 +312,7 @@ class Rooivalk {
           }
         } catch (err) {
           errorCount++;
-          const errMsg =
-            err instanceof Error ? err.message : String(err);
+          const errMsg = err instanceof Error ? err.message : String(err);
           console.error(
             `Wikimedia image fetch failed for ${location.name}: ${errMsg}`,
           );

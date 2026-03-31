@@ -66,7 +66,7 @@ class WikimediaService {
     }
 
     // .json() can throw SyntaxError on malformed responses (e.g. HTML error pages with 200 status);
-    // this is intentional — the caller's per-city catch block handles it.
+    // callers are expected to handle thrown errors.
     const data = (await response.json()) as WikimediaQueryResponse;
     if (data.error) {
       throw new Error(
@@ -127,7 +127,14 @@ class WikimediaService {
       return null;
     }
 
-    const arrayBuffer = await imageResponse.arrayBuffer();
+    let arrayBuffer: ArrayBuffer;
+    try {
+      arrayBuffer = await imageResponse.arrayBuffer();
+    } catch (err) {
+      throw new Error(
+        `Image body read failed for "${cityName}" (${imageInfo.url}): ${err instanceof Error ? err.message : err}`,
+      );
+    }
     if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
       console.warn(
         `Wikimedia image too large after download (${arrayBuffer.byteLength} bytes), skipping`,

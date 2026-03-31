@@ -84,7 +84,7 @@ describe('PeapixService', () => {
     expect(image).toBeNull();
   });
 
-  it('returns null when feed fetch fails', async () => {
+  it('throws when feed fetch fails', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -92,11 +92,12 @@ describe('PeapixService', () => {
       json: async () => ({}),
     } as Response);
 
-    const image = await peapixService.getImage();
-    expect(image).toBeNull();
+    await expect(peapixService.getImage()).rejects.toThrow(
+      'Failed to fetch Peapix Bing feed: 500 Server Error',
+    );
   });
 
-  it('returns null when image fetch fails', async () => {
+  it('throws when image fetch fails', async () => {
     fetchSpy
       .mockResolvedValueOnce({
         ok: true,
@@ -118,7 +119,8 @@ describe('PeapixService', () => {
         arrayBuffer: async () => new Uint8Array([1]).buffer,
       } as Response);
 
-    const image = await peapixService.getImage();
-    expect(image).toBeNull();
+    await expect(peapixService.getImage()).rejects.toThrow(
+      'Peapix image fetch failed: 404 Not Found',
+    );
   });
 });

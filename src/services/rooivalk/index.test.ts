@@ -514,7 +514,7 @@ describe('Rooivalk', () => {
         content: motdContent,
       });
 
-      // First two cities fail, third succeeds
+      // First two cities return null (no image found), third succeeds
       mockWikimediaService.getCityImage
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null)

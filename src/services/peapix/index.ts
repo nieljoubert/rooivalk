@@ -62,30 +62,25 @@ class PeapixService {
   }
 
   public async getImage(): Promise<PeapixImage | null> {
-    try {
-      const feedImage = await this.getFeedImage();
-      if (!feedImage) {
-        return null;
-      }
-
-      const imageResponse = await fetch(feedImage.fullUrl);
-      if (!imageResponse.ok) {
-        throw new Error(
-          `Peapix image fetch failed: ${imageResponse.status} ${imageResponse.statusText}`,
-        );
-      }
-
-      const arrayBuffer = await imageResponse.arrayBuffer();
-      return {
-        title: feedImage.title,
-        copyright: feedImage.copyright,
-        pageUrl: feedImage.pageUrl,
-        buffer: Buffer.from(arrayBuffer),
-      };
-    } catch (error) {
-      console.error('Error fetching MOTD image from Peapix feed:', error);
+    const feedImage = await this.getFeedImage();
+    if (!feedImage) {
       return null;
     }
+
+    const imageResponse = await fetch(feedImage.fullUrl);
+    if (!imageResponse.ok) {
+      throw new Error(
+        `Peapix image fetch failed: ${imageResponse.status} ${imageResponse.statusText}`,
+      );
+    }
+
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    return {
+      title: feedImage.title,
+      copyright: feedImage.copyright,
+      pageUrl: feedImage.pageUrl,
+      buffer: Buffer.from(arrayBuffer),
+    };
   }
 }
 
