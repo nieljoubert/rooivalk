@@ -45,5 +45,6 @@ The PeapixService fetches a daily Bing image from the Peapix feed and returns a 
 
 ## Error Handling
 
-- Logs explicit fetch/parse failures
-- Returns `null` on recoverable errors so callers can send MOTD without image
+- Throws on API/network/download failures; callers are responsible for catching
+- Returns `null` when no feed item is available or validation fails
+- Logs warnings for feed validation failures to aid debugging

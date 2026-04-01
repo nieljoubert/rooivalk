@@ -65,8 +65,7 @@ class WikimediaService {
       );
     }
 
-    // .json() can throw SyntaxError on malformed responses (e.g. HTML error pages with 200 status);
-    // callers are expected to handle thrown errors.
+    // .json() can throw SyntaxError on malformed responses (e.g. HTML error pages with 200 status)
     const data = (await response.json()) as WikimediaQueryResponse;
     if (data.error) {
       throw new Error(
@@ -80,7 +79,7 @@ class WikimediaService {
       return null;
     }
 
-    // Filter to raster photo formats (JPEG, PNG, WebP); excludes SVGs and other non-raster types
+    // Keep only images with supported MIME types (JPEG, PNG, WebP); excludes SVG, TIFF, etc.
     const imagePages = Object.values(pages).filter((page) => {
       const info = page.imageinfo?.[0];
       return info?.url && isWikimediaMime(info.mime);

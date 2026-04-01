@@ -235,6 +235,38 @@ describe('WikimediaService', () => {
     expect(image).toBeNull();
   });
 
+  it('throws when image download fetch throws a network error', async () => {
+    fetchSpy
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => VALID_API_RESPONSE,
+      } as Response)
+      .mockRejectedValueOnce(new Error('Connection reset'));
+
+    await expect(service.getCityImage(TEST_LOCATION)).rejects.toThrow(
+      'Image download failed for',
+    );
+  });
+
+  it('throws when arrayBuffer() fails during image body read', async () => {
+    fetchSpy
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => VALID_API_RESPONSE,
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'content-length': '3' }),
+        arrayBuffer: async () => {
+          throw new Error('Unexpected end of stream');
+        },
+      } as unknown as Response);
+
+    await expect(service.getCityImage(TEST_LOCATION)).rejects.toThrow(
+      'Image body read failed for',
+    );
+  });
+
   it('builds search URL with correct parameters', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: true,

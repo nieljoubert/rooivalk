@@ -47,5 +47,6 @@ The WikimediaService fetches random city images from Wikimedia Commons for use a
 
 ## Error Handling
 
-- Logs explicit fetch/parse/download failures
-- Returns `null` on recoverable errors so callers can fall back to Peapix
+- Throws on API/network/download failures; callers are responsible for catching
+- Returns `null` when no suitable image is found (no pages, no matching MIME types, oversized images)
+- Logs warnings for "no results" cases to aid debugging

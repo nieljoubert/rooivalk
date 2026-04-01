@@ -393,6 +393,104 @@ describe('Rooivalk', () => {
     });
   });
 
+  describe('when handling a weather command', () => {
+    it('should reply with weather data on success', async () => {
+      const interaction = {
+        options: { getString: vi.fn().mockReturnValue('Dubai') },
+        user: { displayName: 'TestUser' },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction;
+
+      const mockYrService = {
+        getAllForecasts: vi.fn(),
+        getForecastByLocation: vi
+          .fn()
+          .mockResolvedValue({ location: 'DUBAI', minTemp: 25 }),
+      } as any;
+
+      mockOpenAIClient.createResponse.mockResolvedValue({
+        type: 'text',
+        content: 'Sunny in Dubai!',
+        base64Images: [],
+      });
+
+      const weatherRooivalk = new Rooivalk(
+        MOCK_CONFIG,
+        mockDiscordService,
+        mockOpenAIClient,
+        mockYrService,
+        mockPeapixService,
+        mockWikimediaService,
+      );
+
+      await weatherRooivalk.handleWeatherCommand(interaction);
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        content: 'Sunny in Dubai!',
+      });
+    });
+
+    it('should reply with error when Yr returns null', async () => {
+      const interaction = {
+        options: { getString: vi.fn().mockReturnValue('Unknown') },
+        user: { displayName: 'TestUser' },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction;
+
+      const mockYrService = {
+        getAllForecasts: vi.fn(),
+        getForecastByLocation: vi.fn().mockResolvedValue(null),
+      } as any;
+
+      const weatherRooivalk = new Rooivalk(
+        MOCK_CONFIG,
+        mockDiscordService,
+        mockOpenAIClient,
+        mockYrService,
+        mockPeapixService,
+        mockWikimediaService,
+      );
+
+      await weatherRooivalk.handleWeatherCommand(interaction);
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        content: 'Error!',
+      });
+    });
+
+    it('should reply with error details when Yr throws', async () => {
+      const interaction = {
+        options: { getString: vi.fn().mockReturnValue('Dubai') },
+        user: { displayName: 'TestUser' },
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction;
+
+      const mockYrService = {
+        getAllForecasts: vi.fn(),
+        getForecastByLocation: vi
+          .fn()
+          .mockRejectedValue(new Error('Yr API down')),
+      } as any;
+
+      const weatherRooivalk = new Rooivalk(
+        MOCK_CONFIG,
+        mockDiscordService,
+        mockOpenAIClient,
+        mockYrService,
+        mockPeapixService,
+        mockWikimediaService,
+      );
+
+      await weatherRooivalk.handleWeatherCommand(interaction);
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('Yr API down'),
+        }),
+      );
+    });
+  });
+
   describe('when sending a MOTD with weather image', () => {
     it('adds an image attachment when a feed image is available', async () => {
       const motdConfig = {

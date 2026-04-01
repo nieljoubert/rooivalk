@@ -17,7 +17,7 @@ class PeapixService {
 
     feedUrl.searchParams.set('country', PEAPIX_COUNTRY);
     feedUrl.searchParams.set('n', PEAPIX_FEED_COUNT);
-    // add this for cache busting, the date is ignored by the api
+    // Cache-bust: the Peapix API does not appear to use this parameter
     feedUrl.searchParams.set('date', Date.now().toString());
 
     return feedUrl.toString();
@@ -55,6 +55,10 @@ class PeapixService {
 
     const first = payload[0];
     if (!this.isFeedItem(first)) {
+      console.warn(
+        'Peapix feed item failed type validation:',
+        JSON.stringify(first),
+      );
       return null;
     }
 
