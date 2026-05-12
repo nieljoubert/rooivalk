@@ -12,6 +12,14 @@ import type {
 
 const META_LAST_SYNCED = 'last_synced';
 
+function toSearchName(name: string): string {
+  return name
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 class SteamService {
   private _writeDb: DatabaseSync;
   private _readDb: DatabaseSync;
@@ -37,8 +45,8 @@ class SteamService {
     console.log('[SteamService] Syncing Steam app list...');
 
     const upsert = this._writeDb.prepare(
-      `INSERT OR REPLACE INTO steam_apps (appid, name, last_modified, price_change_number)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO steam_apps (appid, name, search_name, last_modified, price_change_number)
+       VALUES (?, ?, ?, ?, ?)`,
     );
 
     let lastAppId: number | undefined;
@@ -78,6 +86,7 @@ class SteamService {
           upsert.run(
             app.appid,
             app.name,
+            toSearchName(app.name),
             app.last_modified ?? null,
             app.price_change_number ?? null,
           );
@@ -106,15 +115,16 @@ class SteamService {
   }
 
   public findGame(query: string): { appid: number; name: string } | null {
-    const escaped = query.replace(/[%_\\]/g, '\\$&');
+    const normalized = toSearchName(query);
+    const escaped = normalized.replace(/[%_\\]/g, '\\$&');
     const row = this._readDb
       .prepare(
         `SELECT appid, name FROM steam_apps
-         WHERE name LIKE ? ESCAPE '\\'
-         ORDER BY CASE WHEN LOWER(name) = LOWER(?) THEN 0 ELSE 1 END, name
+         WHERE search_name LIKE ? ESCAPE '\\'
+         ORDER BY CASE WHEN search_name = ? THEN 0 ELSE 1 END, name
          LIMIT 1`,
       )
-      .get(`%${escaped}%`, query) as
+      .get(`%${escaped}%`, normalized) as
       | { appid: number; name: string }
       | undefined;
 

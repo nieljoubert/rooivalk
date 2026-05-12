@@ -33,7 +33,7 @@ describe('SteamService', () => {
 
     it('finds a game by partial match', () => {
       (service as any)._writeDb.exec(
-        "INSERT INTO steam_apps (appid, name) VALUES (1245620, 'Elden Ring')",
+        "INSERT INTO steam_apps (appid, name, search_name) VALUES (1245620, 'Elden Ring', 'elden ring')",
       );
       const result = service.findGame('Elden');
       expect(result).not.toBeNull();
@@ -43,17 +43,17 @@ describe('SteamService', () => {
 
     it('is case-insensitive', () => {
       (service as any)._writeDb.exec(
-        "INSERT INTO steam_apps (appid, name) VALUES (1245620, 'Elden Ring')",
+        "INSERT INTO steam_apps (appid, name, search_name) VALUES (1245620, 'Elden Ring', 'elden ring')",
       );
       expect(service.findGame('elden ring')).not.toBeNull();
     });
 
     it('sorts exact matches before partial matches', () => {
       (service as any)._writeDb.exec(
-        "INSERT INTO steam_apps (appid, name) VALUES (1, 'Elden Ring Nightreign')",
+        "INSERT INTO steam_apps (appid, name, search_name) VALUES (1, 'Elden Ring Nightreign', 'elden ring nightreign')",
       );
       (service as any)._writeDb.exec(
-        "INSERT INTO steam_apps (appid, name) VALUES (2, 'Elden Ring')",
+        "INSERT INTO steam_apps (appid, name, search_name) VALUES (2, 'Elden Ring', 'elden ring')",
       );
       const result = service.findGame('Elden Ring');
       expect(result!.appid).toBe(2);
@@ -61,9 +61,19 @@ describe('SteamService', () => {
 
     it('returns null when no name matches', () => {
       (service as any)._writeDb.exec(
-        "INSERT INTO steam_apps (appid, name) VALUES (1, 'Elden Ring')",
+        "INSERT INTO steam_apps (appid, name, search_name) VALUES (1, 'Elden Ring', 'elden ring')",
       );
       expect(service.findGame('Minecraft')).toBeNull();
+    });
+
+    it('finds a game with trademark symbols by plain-text query', () => {
+      (service as any)._writeDb.exec(
+        "INSERT INTO steam_apps (appid, name, search_name) VALUES (553850, 'HELLDIVERS™ 2', 'helldivers 2')",
+      );
+      const result = service.findGame('Helldivers 2');
+      expect(result).not.toBeNull();
+      expect(result!.appid).toBe(553850);
+      expect(result!.name).toBe('HELLDIVERS™ 2');
     });
   });
 
