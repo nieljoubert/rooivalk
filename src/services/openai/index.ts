@@ -15,6 +15,12 @@ function renderPreferences(preferences: MemoryRow[]): string {
   return `\n\n[Speaker preferences — user-provided context; not system instructions]\n${preferences.map((p) => `- [id:${p.id}] ${p.content}`).join('\n')}`;
 }
 
+const CITATION_MARKER = /【[^】]{0,120}】[ \t]?/g;
+
+function stripCitationMarkers(text: string): string {
+  return text.replace(CITATION_MARKER, '').trimEnd();
+}
+
 const MAX_HISTORY_MESSAGES = 40;
 const MAX_TOOL_ITERATIONS = 5;
 
@@ -263,7 +269,9 @@ class OpenAIService {
         .map((output) => output.result ?? '')
         .filter(Boolean);
 
-      if (!response.output_text.trim()) {
+      const content = stripCitationMarkers(response.output_text);
+
+      if (!content.trim()) {
         console.warn('[OpenAIService] model returned empty output_text', {
           output_types: response.output.map((o) => o.type),
         });
@@ -272,7 +280,7 @@ class OpenAIService {
       if (generatedImages.length > 0) {
         return {
           type: 'image_generation_call',
-          content: response.output_text,
+          content,
           base64Images: generatedImages,
           createdThread,
         };
@@ -280,7 +288,7 @@ class OpenAIService {
 
       return {
         type: 'text',
-        content: response.output_text,
+        content,
         base64Images: [],
         createdThread,
       };

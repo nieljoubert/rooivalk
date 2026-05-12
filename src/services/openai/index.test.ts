@@ -74,6 +74,18 @@ describe('OpenAIService', () => {
       });
     });
 
+    it('strips web_search citation markers from output', async () => {
+      responsesCreateMock.mockResolvedValueOnce({
+        output_text:
+          'Dungeons 3 runs on Windows, Mac, and Linux. 【cite_turn0search0】 Genres: Simulation. 【cite_turn0search1】',
+        output: [],
+      });
+      const result = await service.createResponse('test user', 'hi');
+      expect(result.content).toBe(
+        'Dungeons 3 runs on Windows, Mac, and Linux. Genres: Simulation.',
+      );
+    });
+
     it('includes attachments in the request payload', async () => {
       responsesCreateMock.mockResolvedValueOnce({
         output_text: 'test response',
