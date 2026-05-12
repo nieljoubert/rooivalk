@@ -155,6 +155,7 @@ class SteamService {
     return {
       appid: d.steam_appid,
       name: d.name,
+      store_url: `https://store.steampowered.com/app/${d.steam_appid}/`,
       is_free: d.is_free,
       short_description: d.short_description,
       developers: d.developers ?? [],

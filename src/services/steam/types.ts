@@ -46,6 +46,7 @@ export type AppDetailsResponse = {
 export type SteamGameDetails = {
   appid: number;
   name: string;
+  store_url: string;
   is_free: boolean;
   short_description: string;
   developers: string[];
