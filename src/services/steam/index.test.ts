@@ -123,7 +123,9 @@ describe('SteamService', () => {
 
       expect(details).not.toBeNull();
       expect(details!.appid).toBe(appId);
-      expect(details!.store_url).toBe(`https://store.steampowered.com/app/${appId}/`);
+      expect(details!.store_url).toBe(
+        `https://store.steampowered.com/app/${appId}/`,
+      );
       expect(details!.name).toBe('Elden Ring');
       expect(details!.is_free).toBe(false);
       expect(details!.genres).toEqual(['Action', 'RPG']);
