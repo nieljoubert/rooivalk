@@ -206,7 +206,7 @@ class OpenAIService {
       });
 
       const tools = toolExecutor
-        ? [...this._tools, ...FUNCTION_TOOLS]
+        ? [...FUNCTION_TOOLS, ...this._tools]
         : this._tools;
 
       const chatModel = this.requireChatModel();
