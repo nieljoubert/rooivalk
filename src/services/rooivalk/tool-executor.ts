@@ -7,6 +7,7 @@ import type DiscordService from '../discord/index.ts';
 import type MemoryService from '../memory/index.ts';
 import type { MemoryKind } from '../memory/index.ts';
 import type OpenAIService from '../openai/index.ts';
+import type SteamService from '../steam/index.ts';
 import type YrService from '../yr/index.ts';
 import type { ToolExecutionResult } from '../../types.ts';
 
@@ -17,6 +18,7 @@ export type ToolExecutorContext = {
   openai: OpenAIService;
   clickatell: ClickatellService;
   memory: MemoryService;
+  steam: SteamService;
   createThread: (
     message: Message<boolean>,
     name?: string,
@@ -34,8 +36,16 @@ function errorOutput(err: unknown): ToolExecutionResult {
 }
 
 export function buildToolExecutor(ctx: ToolExecutorContext): ToolExecutor {
-  const { message, yr, discord, openai, clickatell, memory, createThread } =
-    ctx;
+  const {
+    message,
+    yr,
+    discord,
+    openai,
+    clickatell,
+    memory,
+    steam,
+    createThread,
+  } = ctx;
 
   return async (name, args) => {
     switch (name) {
@@ -207,6 +217,51 @@ export function buildToolExecutor(ctx: ToolExecutorContext): ToolExecutor {
           return { output: JSON.stringify({ error: result.error }) };
         }
         return { output: result.output };
+      }
+      case TOOL_NAMES.GET_GAME_LISTING: {
+        const store = args.store as string;
+        if (store !== 'steam') {
+          return {
+            output: JSON.stringify({
+              error: `Store not yet supported: ${store}`,
+            }),
+          };
+        }
+
+        try {
+          const query = args.query as string;
+          const match = steam.findGame(query);
+          if (!match) {
+            return {
+              output: JSON.stringify({
+                error:
+                  'Game not found — try a more specific name, or the app list may still be syncing.',
+              }),
+            };
+          }
+
+          const details = await steam.getGameDetails(match.appid);
+          if (!details) {
+            return {
+              output: JSON.stringify({
+                error: 'Could not retrieve game details from Steam.',
+              }),
+            };
+          }
+
+          return { output: JSON.stringify(details) };
+        } catch (err) {
+          return errorOutput(err);
+        }
+      }
+      case TOOL_NAMES.GET_EMOJIS: {
+        const emojis = discord.allowedEmojis;
+        return {
+          output:
+            emojis.length > 0
+              ? emojis.join('\n')
+              : JSON.stringify({ note: 'No custom emojis available.' }),
+        };
       }
       default:
         return {

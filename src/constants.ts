@@ -33,6 +33,7 @@ export const DISCORD_EMOJI = 'rooivalk';
 export const DISCORD_COMMANDS = {
   IMAGE: 'image',
   WEATHER: 'weather',
+  SYNC_STEAM: 'sync-steam',
 };
 
 // Config file names for hot-swappable markdown configs
@@ -51,6 +52,10 @@ export const CONFIG_DIR = join(__dirname, '..', 'config');
 
 // Yr related constants
 export const YR_USER_AGENT = 'rooivalk github.com/fjlaubscher/rooivalk';
+
+// Steam related constants
+export const STEAM_USER_AGENT = 'rooivalk github.com/fjlaubscher/rooivalk';
+export const STEAM_CC = 'ZA';
 
 export const YR_COORDINATES: Record<string, WeatherLocation> = {
   BONNIEVALE: {
@@ -114,6 +119,10 @@ export const DISCORD_COMMAND_DEFINITIONS: Record<
         })),
       },
     ],
+  },
+  [DISCORD_COMMANDS.SYNC_STEAM]: {
+    description: 'Manually trigger a Steam app list sync.',
+    parameters: [],
   },
 };
 

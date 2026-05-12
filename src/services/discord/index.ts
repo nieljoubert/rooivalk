@@ -21,7 +21,7 @@ import type {
   OpenAIResponse,
 } from '../../types.ts';
 
-import { parseMessageInChain } from './helpers.ts';
+import { parseMessageInChain, formatEmojiEntry } from './helpers.ts';
 
 class DiscordService {
   private _discordClient: DiscordClient;
@@ -230,9 +230,9 @@ class DiscordService {
         process.env.DISCORD_GUILD_ID!,
       );
       const emojis = await guild.emojis.fetch();
-      this._allowedEmojis = emojis.map(
-        (emoji) => `:${emoji.name}: → ${emoji.toString()}`,
-      );
+      this._allowedEmojis = emojis
+        .filter((emoji) => emoji.name !== null)
+        .map((emoji) => formatEmojiEntry(emoji.name!, emoji.toString()));
     } catch (error) {
       console.error('Error caching guild emojis:', error);
     }

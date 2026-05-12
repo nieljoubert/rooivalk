@@ -145,7 +145,6 @@ describe('Rooivalk', () => {
         expect(mockChatClient.createResponse).toHaveBeenCalledWith(
           expectedAuthor,
           'Hi!',
-          [],
           mockHistory,
           null,
           expect.any(Function),
@@ -175,7 +174,6 @@ describe('Rooivalk', () => {
       expect(mockChatClient.createResponse).toHaveBeenCalledWith(
         expectedAuthor,
         'Please review the attached notes',
-        [],
         null,
         [
           {
@@ -268,7 +266,6 @@ describe('Rooivalk', () => {
         expect(mockChatClient.createResponse).toHaveBeenCalledWith(
           expectedAuthor,
           'Hello bot!',
-          [],
           null,
           null,
           expect.any(Function),
@@ -311,7 +308,7 @@ describe('Rooivalk', () => {
 
       expect(mockGetPreferences).toHaveBeenCalledWith(userMessage.author.id);
       const callArgs = mockChatClient.createResponse.mock.calls[0]!;
-      expect(callArgs[6]).toEqual([
+      expect(callArgs[5]).toEqual([
         {
           id: 1,
           discord_user_id: 'mock-user-id',
@@ -433,6 +430,42 @@ describe('Rooivalk', () => {
       });
     });
 
+    describe('get_emojis tool executor', () => {
+      it('returns the cached emoji list when emojis are available', async () => {
+        Object.defineProperty(mockDiscordService, 'allowedEmojis', {
+          get: () => [':foo: → <:foo:111>', ':bar: → <:bar:222>'],
+          configurable: true,
+        });
+
+        const message = createMockMessage({
+          content: `<@${BOT_ID}> what emojis do we have`,
+        } as Partial<Message<boolean>>);
+
+        const executor = (rooivalk as any).createToolExecutor(message);
+        const result = await executor('get_emojis', {});
+
+        expect(result.output).toContain(':foo: → <:foo:111>');
+        expect(result.output).toContain(':bar: → <:bar:222>');
+      });
+
+      it('returns a note when no emojis are cached', async () => {
+        Object.defineProperty(mockDiscordService, 'allowedEmojis', {
+          get: () => [],
+          configurable: true,
+        });
+
+        const message = createMockMessage({
+          content: `<@${BOT_ID}> emojis?`,
+        } as Partial<Message<boolean>>);
+
+        const executor = (rooivalk as any).createToolExecutor(message);
+        const result = await executor('get_emojis', {});
+
+        const parsed = JSON.parse(result.output);
+        expect(parsed.note).toContain('No custom emojis');
+      });
+    });
+
     describe('generate_image tool executor', () => {
       it('returns base64 image and status on success', async () => {
         const message = createMockMessage({
@@ -482,6 +515,159 @@ describe('Rooivalk', () => {
         expect(result.base64Image).toBeUndefined();
         const parsed = JSON.parse(result.output);
         expect(parsed.error).toBe('blocked');
+      });
+    });
+
+    describe('get_game_listing tool executor', () => {
+      const mockSteamService = vi.mocked({
+        findGame: vi.fn(),
+        getGameDetails: vi.fn(),
+        syncAppList: vi.fn(),
+        close: vi.fn(),
+      } as any);
+
+      let rooivalkWithSteam: Rooivalk;
+
+      beforeEach(() => {
+        vi.clearAllMocks();
+        rooivalkWithSteam = new Rooivalk(
+          MOCK_CONFIG,
+          mockDiscordService,
+          mockChatClient,
+          mockOpenAIClient,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          mockSteamService,
+        );
+      });
+
+      it('returns an error payload for unsupported stores', async () => {
+        const message = createMockMessage({
+          content: `<@${BOT_ID}> price of X`,
+        } as Partial<Message<boolean>>);
+
+        const executor = (rooivalkWithSteam as any).createToolExecutor(message);
+        const result = await executor('get_game_listing', {
+          query: 'X',
+          store: 'psn',
+        });
+
+        const parsed = JSON.parse(result.output);
+        expect(parsed.error).toContain('not yet supported');
+      });
+
+      it('returns an error payload when the game is not found', async () => {
+        mockSteamService.findGame.mockReturnValue(null);
+
+        const message = createMockMessage({
+          content: `<@${BOT_ID}> price of Unknown Game`,
+        } as Partial<Message<boolean>>);
+
+        const executor = (rooivalkWithSteam as any).createToolExecutor(message);
+        const result = await executor('get_game_listing', {
+          query: 'Unknown Game',
+          store: 'steam',
+        });
+
+        const parsed = JSON.parse(result.output);
+        expect(parsed.error).toContain('Game not found');
+      });
+
+      it('returns an error payload when getGameDetails returns null', async () => {
+        mockSteamService.findGame.mockReturnValue({
+          appid: 1245620,
+          name: 'Elden Ring',
+        });
+        mockSteamService.getGameDetails.mockResolvedValue(null);
+
+        const message = createMockMessage({
+          content: `<@${BOT_ID}> info on Elden Ring`,
+        } as Partial<Message<boolean>>);
+
+        const executor = (rooivalkWithSteam as any).createToolExecutor(message);
+        const result = await executor('get_game_listing', {
+          query: 'Elden Ring',
+          store: 'steam',
+        });
+
+        const parsed = JSON.parse(result.output);
+        expect(parsed.error).toContain('Could not retrieve game details');
+      });
+
+      it('returns serialised game details on success', async () => {
+        const details = {
+          appid: 1245620,
+          name: 'Elden Ring',
+          is_free: false,
+          short_description: 'An open world action RPG.',
+          developers: ['FromSoftware'],
+          publishers: ['Bandai Namco'],
+          price: {
+            currency: 'ZAR',
+            initial_formatted: 'R1,049',
+            final_formatted: 'R999',
+            discount_percent: 5,
+          },
+          genres: ['Action', 'RPG'],
+          categories: ['Single-player'],
+          release_date: '25 Feb, 2022',
+          header_image: 'https://cdn.steam.com/header.jpg',
+          platforms: { windows: true, mac: false, linux: false },
+          achievements_total: 42,
+          recommendations_total: 100000,
+          supported_languages: 'English',
+        };
+
+        mockSteamService.findGame.mockReturnValue({
+          appid: 1245620,
+          name: 'Elden Ring',
+        });
+        mockSteamService.getGameDetails.mockResolvedValue(details);
+
+        const message = createMockMessage({
+          content: `<@${BOT_ID}> info on Elden Ring`,
+        } as Partial<Message<boolean>>);
+
+        const executor = (rooivalkWithSteam as any).createToolExecutor(message);
+        const result = await executor('get_game_listing', {
+          query: 'Elden Ring',
+          store: 'steam',
+        });
+
+        const parsed = JSON.parse(result.output);
+        expect(parsed.appid).toBe(1245620);
+        expect(parsed.name).toBe('Elden Ring');
+        expect(parsed.price.currency).toBe('ZAR');
+        expect(parsed.genres).toEqual(['Action', 'RPG']);
+        expect(mockSteamService.findGame).toHaveBeenCalledWith('Elden Ring');
+        expect(mockSteamService.getGameDetails).toHaveBeenCalledWith(1245620);
+      });
+
+      it('returns an error payload when getGameDetails throws', async () => {
+        mockSteamService.findGame.mockReturnValue({
+          appid: 1,
+          name: 'Elden Ring',
+        });
+        mockSteamService.getGameDetails.mockRejectedValue(
+          new Error('Network error'),
+        );
+
+        const message = createMockMessage({
+          content: `<@${BOT_ID}> price of Elden Ring`,
+        } as Partial<Message<boolean>>);
+
+        const executor = (rooivalkWithSteam as any).createToolExecutor(message);
+        const result = await executor('get_game_listing', {
+          query: 'Elden Ring',
+          store: 'steam',
+        });
+
+        const parsed = JSON.parse(result.output);
+        expect(parsed.error).toBe('Network error');
       });
     });
   });
@@ -693,6 +879,93 @@ describe('Rooivalk', () => {
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
           content: expect.stringContaining('Yr API down'),
+        }),
+      );
+    });
+  });
+
+  describe('when handling a sync-steam command', () => {
+    const mockSteamService = vi.mocked({
+      findGame: vi.fn(),
+      getGameDetails: vi.fn(),
+      syncAppList: vi.fn(),
+      close: vi.fn(),
+    } as any);
+
+    let rooivalkWithSteam: Rooivalk;
+
+    beforeEach(() => {
+      rooivalkWithSteam = new Rooivalk(
+        MOCK_CONFIG,
+        mockDiscordService,
+        mockChatClient,
+        mockOpenAIClient,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        mockSteamService,
+      );
+    });
+
+    it('replies ephemerally without calling sync when STEAM_API_KEY is not set', async () => {
+      const interaction = {
+        reply: vi.fn(),
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction;
+
+      await (rooivalkWithSteam as any).handleSyncSteamCommand(interaction);
+
+      expect(interaction.reply).toHaveBeenCalledWith({
+        content: expect.stringContaining('STEAM_API_KEY'),
+        ephemeral: true,
+      });
+      expect(interaction.deferReply).not.toHaveBeenCalled();
+      expect(mockSteamService.syncAppList).not.toHaveBeenCalled();
+    });
+
+    it('defers, calls syncAppList, and confirms completion when STEAM_API_KEY is set', async () => {
+      vi.stubGlobal('process', {
+        env: { ...MOCK_ENV, STEAM_API_KEY: 'test-steam-key' },
+      });
+      mockSteamService.syncAppList.mockResolvedValue(undefined);
+
+      const interaction = {
+        reply: vi.fn(),
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction;
+
+      await (rooivalkWithSteam as any).handleSyncSteamCommand(interaction);
+
+      expect(interaction.deferReply).toHaveBeenCalled();
+      expect(mockSteamService.syncAppList).toHaveBeenCalled();
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        content: 'Steam app list sync complete.',
+      });
+    });
+
+    it('replies with the error message when syncAppList throws', async () => {
+      vi.stubGlobal('process', {
+        env: { ...MOCK_ENV, STEAM_API_KEY: 'test-steam-key' },
+      });
+      mockSteamService.syncAppList.mockRejectedValue(new Error('API timeout'));
+
+      const interaction = {
+        reply: vi.fn(),
+        deferReply: vi.fn(),
+        editReply: vi.fn(),
+      } as unknown as ChatInputCommandInteraction;
+
+      await (rooivalkWithSteam as any).handleSyncSteamCommand(interaction);
+
+      expect(interaction.deferReply).toHaveBeenCalled();
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('API timeout'),
         }),
       );
     });
@@ -1369,7 +1642,6 @@ describe('Rooivalk', () => {
         expect(mockChatClient.createResponse).toHaveBeenCalledWith(
           expectedAuthor,
           'Hello in thread',
-          [],
           mockThreadHistory,
           null,
           expect.any(Function),
@@ -1432,7 +1704,6 @@ describe('Rooivalk', () => {
         expect(mockChatClient.createResponse).toHaveBeenCalledWith(
           expectedAuthor,
           'Hello outside thread',
-          [],
           mockChainHistory,
           null,
           expect.any(Function),

@@ -37,6 +37,11 @@ async function main() {
   cron.schedule(motdExpr, async () => {
     await rooivalk.sendMotdToMotdChannel();
   });
+  if (process.env.STEAM_API_KEY) {
+    cron.schedule('0 0 * * *', async () => {
+      await rooivalk.syncSteamAppList();
+    });
+  }
 }
 
 main().catch((error) => {

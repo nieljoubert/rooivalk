@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { Collection } from 'discord.js';
 import type { Attachment } from 'discord.js';
-import { parseMessageInChain, formatMessageInChain } from './helpers.ts';
+import {
+  parseMessageInChain,
+  formatMessageInChain,
+  formatEmojiEntry,
+} from './helpers.ts';
 import { createMockMessage } from '../../test-utils/createMockMessage.ts';
 import type { MessageInChain } from '../../types.ts';
 
@@ -121,6 +125,20 @@ describe('discord helpers', () => {
         content: '',
         attachmentUrls: ['https://example.com/image.png'],
       });
+    });
+  });
+
+  describe('formatEmojiEntry', () => {
+    it('formats a static emoji entry', () => {
+      expect(formatEmojiEntry('rooivalk', '<:rooivalk:123456789>')).toBe(
+        ':rooivalk: → <:rooivalk:123456789>',
+      );
+    });
+
+    it('formats an animated emoji entry', () => {
+      expect(formatEmojiEntry('fire', '<a:fire:987654321>')).toBe(
+        ':fire: → <a:fire:987654321>',
+      );
     });
   });
 

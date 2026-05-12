@@ -95,7 +95,7 @@ describe('OpenAIService', () => {
         },
       ];
 
-      await service.createResponse('test user', 'hi', [], null, attachments);
+      await service.createResponse('test user', 'hi', null, attachments);
 
       expect(responsesCreateMock).toHaveBeenCalledTimes(1);
       const callArgs = responsesCreateMock.mock.calls[0]![0];
@@ -172,7 +172,7 @@ describe('OpenAIService', () => {
         },
       ];
 
-      await service.createResponse('test user', 'hi', [], history);
+      await service.createResponse('test user', 'hi', history);
 
       const callArgs = responsesCreateMock.mock.calls[0]![0];
       // History should NOT be in instructions
@@ -201,7 +201,7 @@ describe('OpenAIService', () => {
         attachmentUrls: [] as string[],
       }));
 
-      await service.createResponse('test user', 'hi', [], history);
+      await service.createResponse('test user', 'hi', history);
 
       const callArgs = responsesCreateMock.mock.calls[0]![0];
       // 40 history messages + 1 system message + 1 user message = 42
@@ -226,23 +226,15 @@ describe('OpenAIService', () => {
         output: [],
       });
 
-      await service.createResponse(
-        'test user',
-        'hi',
-        [],
-        null,
-        null,
-        undefined,
-        [
-          {
-            id: 1,
-            discord_user_id: 'u',
-            content: 'call me Francois',
-            kind: 'preference',
-            created_at: 0,
-          },
-        ],
-      );
+      await service.createResponse('test user', 'hi', null, null, undefined, [
+        {
+          id: 1,
+          discord_user_id: 'u',
+          content: 'call me Francois',
+          kind: 'preference',
+          created_at: 0,
+        },
+      ]);
 
       const callArgs = responsesCreateMock.mock.calls[0]![0];
       expect(callArgs.instructions).toContain('[Speaker preferences');
@@ -258,7 +250,6 @@ describe('OpenAIService', () => {
       await service.createResponse(
         'test user',
         'hi',
-        [],
         null,
         null,
         undefined,
@@ -278,7 +269,6 @@ describe('OpenAIService', () => {
       await service.createResponse(
         'test user',
         'hi',
-        [],
         null,
         null,
         undefined,

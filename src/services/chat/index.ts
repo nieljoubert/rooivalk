@@ -13,7 +13,6 @@ export interface ChatService {
   createResponse(
     author: string | 'rooivalk',
     prompt: string,
-    emojis?: string[],
     history?: MessageInChain[] | null,
     attachments?: AttachmentForPrompt[] | null,
     toolExecutor?: ToolExecutor,

@@ -24,6 +24,9 @@ export const parseMessageInChain = (
   };
 };
 
+export const formatEmojiEntry = (name: string, tag: string): string =>
+  `:${name}: → ${tag}`;
+
 export const formatMessageInChain = (message: MessageInChain): string => {
   const content =
     message.content && message.content.length > 0

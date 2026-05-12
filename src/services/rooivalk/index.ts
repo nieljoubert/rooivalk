@@ -32,6 +32,7 @@ import DiscordService from '../discord/index.ts';
 import MemoryService from '../memory/index.ts';
 import OpenAIService from '../openai/index.ts';
 import PeapixService from '../peapix/index.ts';
+import SteamService from '../steam/index.ts';
 import WikimediaService from '../wikimedia/index.ts';
 import YrService from '../yr/index.ts';
 import type {
@@ -70,6 +71,7 @@ class Rooivalk {
   protected _wikimedia: WikimediaService;
   protected _clickatell: ClickatellService;
   protected _memory: MemoryService;
+  protected _steam: SteamService;
   private _allowedAppIds: string[];
 
   constructor(
@@ -83,6 +85,7 @@ class Rooivalk {
     fieldHospitalChatService?: ChatService,
     clickatellService?: ClickatellService,
     memoryService?: MemoryService,
+    steamService?: SteamService,
   ) {
     this._config = config;
     this._discord = discordService ?? new DiscordService(this._config);
@@ -99,6 +102,12 @@ class Rooivalk {
     this._memory =
       memoryService ??
       new MemoryService(process.env.ROOIVALK_DB_PATH ?? './data/rooivalk.db');
+    this._steam =
+      steamService ??
+      new SteamService(
+        process.env.ROOIVALK_DB_PATH ?? './data/rooivalk.db',
+        process.env.STEAM_API_KEY,
+      );
 
     // Parse DISCORD_ALLOWED_APPS once and store
     const allowedAppsEnv = process.env.DISCORD_ALLOWED_APPS;
@@ -233,8 +242,13 @@ class Rooivalk {
       openai: this._openai,
       clickatell: this._clickatell,
       memory: this._memory,
+      steam: this._steam,
       createThread: (msg, name) => this.createRooivalkThread(msg, name),
     });
+  }
+
+  public async syncSteamAppList(): Promise<void> {
+    await this._steam.syncAppList();
   }
 
   public async processMessage(message: Message<boolean>) {
@@ -269,7 +283,6 @@ class Rooivalk {
       const response = await chat.createResponse(
         buildPromptAuthor(message.author),
         prompt,
-        this._discord.allowedEmojis,
         conversationHistory,
         attachments.length > 0 ? attachments : null,
         toolExecutor,
@@ -335,12 +348,7 @@ class Rooivalk {
     motd = motd.replace(/{{EVENTS_JSON}}/, JSON.stringify(events || []));
 
     try {
-      const response = await this._chat.createResponse(
-        'rooivalk',
-        motd,
-        this._discord.allowedEmojis,
-        undefined,
-      );
+      const response = await this._chat.createResponse('rooivalk', motd);
 
       const rawMotdContent = response.content?.trim();
       if (!rawMotdContent) {
@@ -482,12 +490,7 @@ class Rooivalk {
     }
 
     try {
-      const response = await this._chat.createResponse(
-        'rooivalk',
-        prompt,
-        this._discord.allowedEmojis,
-        undefined,
-      );
+      const response = await this._chat.createResponse('rooivalk', prompt);
 
       const channel = await this._discord.client.channels.fetch(channelId);
       if (channel && channel.isTextBased()) {
@@ -501,6 +504,31 @@ class Rooivalk {
     } catch (err) {
       console.error(`Error sending message to channel:`, err);
       return null;
+    }
+  }
+
+  private async handleSyncSteamCommand(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<void> {
+    if (!process.env.STEAM_API_KEY) {
+      await interaction.reply({
+        content: '`STEAM_API_KEY` is not configured — sync is unavailable.',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.deferReply();
+
+    try {
+      await this._steam.syncAppList();
+      await interaction.editReply({ content: 'Steam app list sync complete.' });
+    } catch (error) {
+      console.error('Error syncing Steam app list:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      await interaction.editReply({
+        content: `Steam sync failed.\n\n\`\`\`${message}\`\`\``,
+      });
     }
   }
 
@@ -581,7 +609,6 @@ class Rooivalk {
       const response = await this._chat.createResponse(
         interaction.user.displayName,
         prompt,
-        this._discord.allowedEmojis,
       );
       await interaction.editReply({
         content: response.content,
@@ -684,6 +711,9 @@ class Rooivalk {
             break;
           case DISCORD_COMMANDS.WEATHER:
             await this.handleWeatherCommand(interaction);
+            break;
+          case DISCORD_COMMANDS.SYNC_STEAM:
+            await this.handleSyncSteamCommand(interaction);
             break;
           default:
             console.error(

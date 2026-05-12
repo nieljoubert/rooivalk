@@ -197,4 +197,35 @@ export const FUNCTION_TOOLS: Anthropic.Messages.Tool[] = [
       required: ['command'],
     },
   },
+  {
+    name: TOOL_NAMES.GET_EMOJIS,
+    description:
+      'List all custom emojis available in this Discord server. Call this before using a custom emoji to get the correct <:name:id> tokens.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.GET_GAME_LISTING,
+    description:
+      "Look up a game on a digital store and return its full listing: price, description, genres, release date, and platform availability. Use when the user asks about a game's price, store page, or availability.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'The game name to search for. Be as specific as possible to avoid wrong matches.',
+        },
+        store: {
+          type: 'string',
+          enum: ['steam'],
+          description: 'The store to query.',
+        },
+      },
+      required: ['query', 'store'],
+    },
+  },
 ];

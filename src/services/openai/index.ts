@@ -72,7 +72,6 @@ class OpenAIService {
   async createResponse(
     author: string | 'rooivalk',
     prompt: string,
-    emojis: string[] = [],
     history: MessageInChain[] | null = null,
     attachments: AttachmentForPrompt[] | null = null,
     toolExecutor?: ToolExecutor,
@@ -84,11 +83,6 @@ class OpenAIService {
 
       const currentDate = new Date().toISOString().split('T')[0];
       instructions = instructions.replace(/{{CURRENT_DATE}}/g, currentDate);
-
-      // inject emojis if available
-      if (emojis) {
-        instructions = instructions.replace(/{{EMOJIS}}/, emojis.join('\n'));
-      }
 
       if (preferences && preferences.length > 0) {
         instructions += renderPreferences(preferences);
