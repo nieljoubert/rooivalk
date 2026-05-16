@@ -972,7 +972,64 @@ describe('Rooivalk', () => {
   });
 
   describe('when sending a MOTD with weather image', () => {
-    it('adds an image attachment when a feed image is available', async () => {
+    it('uses AI-generated image when createImage succeeds', async () => {
+      const motdConfig = {
+        ...MOCK_CONFIG,
+        motd: 'Prompt {{WEATHER_FORECASTS_JSON}} {{EVENTS_JSON}}',
+      };
+      const motdContent = 'Good morning!';
+      const mockChannel = { isTextBased: () => true, send: vi.fn() };
+
+      Object.defineProperty(mockDiscordService, 'motdChannelId', {
+        get: () => 'motd-channel-id',
+        configurable: true,
+      });
+      Object.defineProperty(mockDiscordService, 'client', {
+        get: () => ({
+          user: { id: BOT_ID, tag: 'TestBot#0000' },
+          channels: { fetch: vi.fn().mockResolvedValue(mockChannel) },
+        }),
+        configurable: true,
+      });
+
+      mockDiscordService.getGuildEventsBetween.mockResolvedValue([]);
+      mockChatClient.createResponse.mockResolvedValue({
+        type: 'text',
+        content: motdContent,
+        base64Images: [],
+      });
+      mockDiscordService.buildMessageReply.mockReturnValue({
+        content: motdContent,
+      });
+
+      const fakeBase64 = Buffer.from('fake-image').toString('base64');
+      mockOpenAIClient.createImage.mockResolvedValue(fakeBase64);
+
+      const mockYrService = {
+        getAllForecasts: vi.fn().mockResolvedValue([]),
+      } as any;
+      const motdRooivalk = new Rooivalk(
+        motdConfig,
+        mockDiscordService,
+        mockChatClient,
+        mockOpenAIClient,
+        mockYrService,
+        mockPeapixService,
+        mockWikimediaService,
+      );
+
+      await motdRooivalk.sendMotdToMotdChannel();
+
+      expect(mockOpenAIClient.createImage).toHaveBeenCalledTimes(1);
+      expect(mockWikimediaService.getCityImage).not.toHaveBeenCalled();
+      expect(mockPeapixService.getImage).not.toHaveBeenCalled();
+
+      const sendPayload = mockChannel.send.mock.calls[0]?.[0];
+      expect(sendPayload?.files).toHaveLength(1);
+      expect(sendPayload?.embeds).toHaveLength(1);
+    });
+
+    it('falls back to Wikimedia when AI generation returns null', async () => {
       const motdConfig = {
         ...MOCK_CONFIG,
         motd: 'Prompt {{WEATHER_FORECASTS_JSON}} {{EVENTS_JSON}}',
@@ -1042,7 +1099,7 @@ describe('Rooivalk', () => {
 
       await motdRooivalk.sendMotdToMotdChannel();
 
-      expect(mockOpenAIClient.createImage).not.toHaveBeenCalled();
+      expect(mockOpenAIClient.createImage).toHaveBeenCalledTimes(1);
       expect(mockDiscordService.buildMessageReply).toHaveBeenCalledWith(
         expect.objectContaining({
           content: motdContent,
@@ -1058,7 +1115,7 @@ describe('Rooivalk', () => {
       expect(sendPayload?.embeds?.[0]?.data?.footer?.text).toBe(
         'Table View Beach',
       );
-      // Should stop after first successful city, not try all
+      // Should stop after first successful Wikimedia city, not try all
       expect(mockWikimediaService.getCityImage).toHaveBeenCalledTimes(1);
       expect(mockPeapixService.getImage).not.toHaveBeenCalled();
     });
@@ -1183,7 +1240,7 @@ describe('Rooivalk', () => {
 
       await motdRooivalk.sendMotdToMotdChannel();
 
-      expect(mockOpenAIClient.createImage).not.toHaveBeenCalled();
+      expect(mockOpenAIClient.createImage).toHaveBeenCalledTimes(1);
       // Should try all cities before giving up
       expect(mockWikimediaService.getCityImage).toHaveBeenCalledTimes(
         CITY_COUNT,

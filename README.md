@@ -13,7 +13,7 @@ Rooivalk is a Discord bot powered by Anthropic Claude or OpenAI. It responds to 
 - **Steam store lookups**: The model can look up any game's price, description, genres, and platform availability via the `get_game_listing` tool; the full app catalogue is synced nightly into SQLite
 - **SMS**: Sends SMS to registered users via Clickatell
 - **Shell inspection**: The model can read server logs and inspect its own source files via a sandboxed `run_bash` tool
-- **Scheduled tasks**: MOTD (Message of the Day) and Steam app list sync via cron jobs
+- **Scheduled tasks**: MOTD (Message of the Day) with AI-generated city artwork in varied art styles, and Steam app list sync via cron jobs
 - **Hot-reloadable configuration**: Runtime configuration updates via `config/*.md` files
 - **Robust testing**: Comprehensive test suite with dedicated utilities for mocking Discord interactions and service dependencies
 

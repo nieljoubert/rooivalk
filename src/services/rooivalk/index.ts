@@ -60,6 +60,39 @@ function shuffleArray<T>(items: T[]): T[] {
 
 const MOTD_IMAGE_ATTACHMENT_NAME = 'rooivalk_motd.jpg';
 
+const MOTD_IMAGE_STYLES = [
+  'watercolour painting',
+  'oil painting',
+  'digital concept art',
+  'pencil sketch',
+  'pop art',
+  'art nouveau illustration',
+  'impressionist painting',
+  'ukiyo-e woodblock print',
+  'pixel art',
+  'retro travel poster',
+  'isometric illustration',
+  'stained glass window design',
+  'vintage postcard',
+  'charcoal drawing',
+  'comic book panel',
+];
+
+const MOTD_CITY_ASPECTS = [
+  'a famous landmark or monument',
+  'the local cuisine and street food',
+  'a hidden gem only locals know about',
+  'the skyline at golden hour',
+  'a bustling local market scene',
+  'the surrounding natural landscape',
+  'a cultural festival or tradition',
+  'the distinctive architecture',
+  'everyday street life',
+  'wildlife native to the region',
+  'the coastline or waterfront',
+  'a historical scene from the past',
+];
+
 class Rooivalk {
   protected _config: InMemoryConfig;
   protected _discord: DiscordService;
@@ -356,7 +389,6 @@ class Rooivalk {
         return;
       }
 
-      // Try Wikimedia city image for each city (in random order), skipping failures; fall back to Peapix if all cities fail
       let motdImage: {
         heading: string;
         attribution: string;
@@ -365,50 +397,71 @@ class Rooivalk {
 
       const locations = Object.values(YR_COORDINATES);
       const shuffled = shuffleArray(locations);
+      const selectedCity = shuffled[0];
 
-      let errorCount = 0;
-      for (const location of shuffled) {
-        try {
-          const cityImage = await this._wikimedia.getCityImage(location);
-          if (cityImage) {
-            motdImage = {
-              heading: cityImage.cityName,
-              attribution: cityImage.title,
-              buffer: cityImage.buffer,
-            };
-            break;
-          }
-        } catch (err) {
-          errorCount++;
-          console.error(
-            `Wikimedia image fetch failed for ${location.name}:`,
-            err,
-          );
+      const style =
+        MOTD_IMAGE_STYLES[Math.floor(Math.random() * MOTD_IMAGE_STYLES.length)];
+      const aspect =
+        MOTD_CITY_ASPECTS[Math.floor(Math.random() * MOTD_CITY_ASPECTS.length)];
+      const imagePrompt = `${style} depicting ${aspect} of ${selectedCity.name}. Vivid, detailed, atmospheric.`;
+
+      try {
+        const base64Image = await this._openai.createImage(imagePrompt);
+        if (base64Image) {
+          motdImage = {
+            heading: selectedCity.name,
+            attribution: imagePrompt,
+            buffer: Buffer.from(base64Image, 'base64'),
+          };
         }
+      } catch (err) {
+        console.error(
+          `AI image generation failed for ${selectedCity.name}:`,
+          err,
+        );
       }
 
       if (!motdImage) {
-        console.warn(
-          `Wikimedia image unavailable for all ${shuffled.length} cities` +
-            ` (${errorCount} threw, ${shuffled.length - errorCount} returned null).` +
-            ` Falling back to Peapix.`,
-        );
-        try {
-          const peapixImage = await this._peapix.getImage();
-          if (peapixImage) {
-            motdImage = {
-              heading: peapixImage.title ?? 'Image of the day',
-              attribution: peapixImage.copyright,
-              buffer: peapixImage.buffer,
-            };
-          } else {
-            console.warn('Peapix fallback returned no image.');
+        for (const location of shuffled) {
+          try {
+            const cityImage = await this._wikimedia.getCityImage(location);
+            if (cityImage) {
+              motdImage = {
+                heading: cityImage.cityName,
+                attribution: cityImage.title,
+                buffer: cityImage.buffer,
+              };
+              break;
+            }
+          } catch (err) {
+            console.error(
+              `Wikimedia image fetch failed for ${location.name}:`,
+              err,
+            );
           }
-        } catch (peapixErr) {
-          console.error(
-            'Peapix fallback image fetch threw an error:',
-            peapixErr,
+        }
+
+        if (!motdImage) {
+          console.warn(
+            `AI generation and Wikimedia both failed. Falling back to Peapix.`,
           );
+          try {
+            const peapixImage = await this._peapix.getImage();
+            if (peapixImage) {
+              motdImage = {
+                heading: peapixImage.title ?? 'Image of the day',
+                attribution: peapixImage.copyright,
+                buffer: peapixImage.buffer,
+              };
+            } else {
+              console.warn('Peapix fallback returned no image.');
+            }
+          } catch (peapixErr) {
+            console.error(
+              'Peapix fallback image fetch threw an error:',
+              peapixErr,
+            );
+          }
         }
       }
 
