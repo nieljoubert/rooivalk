@@ -60,6 +60,7 @@ function shuffleArray<T>(items: T[]): T[] {
 
 const MOTD_IMAGE_ATTACHMENT_NAME = 'rooivalk_motd.jpg';
 
+// Used as a fallback when the LLM-generated image prompt is unavailable.
 const MOTD_IMAGE_STYLES = [
   'watercolour painting',
   'oil painting',
@@ -76,6 +77,31 @@ const MOTD_IMAGE_STYLES = [
   'vintage postcard',
   'charcoal drawing',
   'comic book panel',
+  'gouache painting',
+  'ink wash painting',
+  'low-poly 3D render',
+  'cyberpunk neon illustration',
+  'steampunk illustration',
+  'minimalist flat vector art',
+  'surrealist painting',
+  'cubist painting',
+  'expressionist painting',
+  'baroque oil painting',
+  'fresco mural',
+  'linocut print',
+  'risograph print',
+  'cross-stitch embroidery',
+  'claymation diorama',
+  'paper cut-out collage',
+  'chalk pastel drawing',
+  'graffiti street mural',
+  'art deco poster',
+  'vaporwave aesthetic',
+  'storybook illustration',
+  'cinematic matte painting',
+  'silhouette illustration',
+  'mosaic tile artwork',
+  'blueprint technical drawing',
 ];
 
 const MOTD_CITY_ASPECTS = [
@@ -91,6 +117,23 @@ const MOTD_CITY_ASPECTS = [
   'wildlife native to the region',
   'the coastline or waterfront',
   'a historical scene from the past',
+  'a rainy night with reflections on the streets',
+  'a snowy winter morning',
+  'a view from a rooftop cafe',
+  'the old town quarter at dusk',
+  'a busy transit hub or train station',
+  'a tranquil park or garden',
+  'a vibrant nightlife district',
+  'a panoramic aerial view',
+  'a misty sunrise over the city',
+  'traditional local clothing and people',
+  'a beloved local sport or pastime',
+  'the river winding through the city',
+  'a famous bridge or crossing',
+  'an iconic local mode of transport',
+  'the city seen from a nearby hill',
+  'a quiet cobblestone alleyway',
+  'a seasonal scene unique to the region',
 ];
 
 class Rooivalk {
@@ -403,7 +446,24 @@ class Rooivalk {
         MOTD_IMAGE_STYLES[Math.floor(Math.random() * MOTD_IMAGE_STYLES.length)];
       const aspect =
         MOTD_CITY_ASPECTS[Math.floor(Math.random() * MOTD_CITY_ASPECTS.length)];
-      const imagePrompt = `${style} depicting ${aspect} of ${selectedCity.name}. Vivid, detailed, atmospheric.`;
+      const fallbackImagePrompt = `${style} depicting ${aspect} of ${selectedCity.name}. Vivid, detailed, atmospheric.`;
+
+      // Prefer a fresh LLM-generated prompt for variety; fall back to a random
+      // style/aspect combo if the model is unavailable or returns nothing.
+      let imagePrompt = fallbackImagePrompt;
+      try {
+        const generatedPrompt = await this._openai.generateMotdImagePrompt(
+          selectedCity.name,
+        );
+        if (generatedPrompt) {
+          imagePrompt = generatedPrompt;
+        }
+      } catch (err) {
+        console.error(
+          `AI image prompt generation failed for ${selectedCity.name}:`,
+          err,
+        );
+      }
 
       try {
         const base64Image = await this._openai.createImage(imagePrompt);
